@@ -67,12 +67,12 @@ def generate_bill(fuel_type, amount):
     date_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     bill_no = random.randint(100000, 999999)
 
-    # Save bill file
     save_bill_to_file(bill_no, date_time, fuel_type, quantity, unit, amount, rate)
 
-    # Log transaction in master file
     bill_info = f"{bill_no} | {date_time} | {fuel_type} | {round(quantity,2)} {unit} | ₱{amount}"
     record_transaction(bill_info)
+
+    print("\nPurchase Successful!")
 
 def main():
     while True:
@@ -107,8 +107,7 @@ def main():
                 print("Amount must be positive.")
                 continue
             elif amount < rate:
-                print(
-                    f"Insufficient amount! Minimum should be at least ₱{rate} for 1 {('Kg' if fuel_type == 'CNG' else 'Liter')}.")
+                print(f"Insufficient amount! Minimum should be at least ₱{rate} for 1 {('Kg' if fuel_type == 'CNG' else 'Liter')}.")
                 continue
 
             generate_bill(fuel_type, amount)
