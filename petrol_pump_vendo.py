@@ -14,9 +14,13 @@ def menu():
     print("A. Petrol")
     print("B. Diesel")
     print("C. CNG")
+    print("D. LPG")
+    print("E. Electric")
+    print("F. Biodiesel")
+    print("G. E85")
     print("V. View Transaction History")
-    print("D. Delete Transaction History")
-    print("E. Exit")
+    print("X. Delete Transaction History")
+    print("Q. Exit")
     print("-" * 50)
 
 def record_transaction(bill_info):
@@ -40,7 +44,7 @@ def delete_transactions():
     else:
         print("No transaction history file to delete.")
 
-def save_bill_to_file(bill_no, date_time, fuel_type, quantity, unit, amount, rate):
+def save_bill(bill_no, date_time, fuel_type, quantity, unit, amount, rate):
     filename = os.path.join(BASE_DIR, f"bill_{bill_no}.txt")
     with open(filename, "w", encoding="utf-8") as file:
         file.write("-" * 50 + "\n")
@@ -62,17 +66,24 @@ def generate_bill(fuel_type, amount):
         print("Invalid fuel type.")
         return
 
-    unit = "Kg" if fuel_type == "CNG" else "Liters"
+    if fuel_type == "CNG":
+        unit = "Kg"
+    elif fuel_type == "Electric":
+        unit = "kWh"
+    else:
+        unit = "Liters"
+
     quantity = amount / rate
     date_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     bill_no = random.randint(100000, 999999)
 
-    save_bill_to_file(bill_no, date_time, fuel_type, quantity, unit, amount, rate)
-
+    save_bill(bill_no, date_time, fuel_type, quantity, unit, amount, rate)
     bill_info = f"{bill_no} | {date_time} | {fuel_type} | {round(quantity,2)} {unit} | ₱{amount}"
     record_transaction(bill_info)
 
-    print("\nPurchase Successful!")
+    print(f"\nPurchase Successful!")
+    print(f"You received {round(quantity,2)} {unit} of {fuel_type} for ₱{amount} (₱{rate} per {unit[:-1]}).")
+    print(f"Bill No: {bill_no}\n")
 
 def main():
     while True:
@@ -86,13 +97,21 @@ def main():
                 fuel_type = "Diesel"
             elif choice == 'C':
                 fuel_type = "CNG"
+            elif choice == 'D':
+                fuel_type = "LPG"
+            elif choice == 'E':
+                fuel_type = "Electric"
+            elif choice == 'F':
+                fuel_type = "Biodiesel"
+            elif choice == 'G':
+                fuel_type = "E85"
             elif choice == 'V':
                 view_transactions()
                 continue
-            elif choice == 'D':
+            elif choice == 'X':
                 delete_transactions()
                 continue
-            elif choice == 'E':
+            elif choice == 'Q':
                 print("Thank you for visiting HP Petrol Pump. Goodbye!")
                 break
             else:
@@ -100,14 +119,15 @@ def main():
                 continue
 
             # Enter amount
-            amount = float(input(f"Enter amount for {fuel_type}: "))
+            amount = float(input(f"Enter amount for {fuel_type} (₱): "))
             rate = fr.get_rate(fuel_type)
 
             if amount <= 0:
                 print("Amount must be positive.")
                 continue
             elif amount < rate:
-                print(f"Insufficient amount! Minimum should be at least ₱{rate} for 1 {('Kg' if fuel_type == 'CNG' else 'Liter')}.")
+                unit = "kWh" if fuel_type == "Electric" else ("Kg" if fuel_type == "CNG" else "Liter")
+                print(f"Insufficient amount! Minimum should be at least ₱{rate} for 1 {unit}.")
                 continue
 
             generate_bill(fuel_type, amount)
