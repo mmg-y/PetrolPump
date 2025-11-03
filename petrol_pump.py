@@ -5,10 +5,11 @@ import os
 import hashlib
 import re
 
+total_width = 70  # Set all border widths here
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FUEL_FILE = os.path.join(BASE_DIR, "fuel_transactions.txt")
 USER_FILE = os.path.join(BASE_DIR, "users.txt")
-
+CARD_FILE = os.path.join(BASE_DIR, "card_balances.txt")  # File to store card balances
 
 def hash_password(password):
     return hashlib.sha256(password.encode("utf-8")).hexdigest()
@@ -24,7 +25,7 @@ def validate_password(password):
 
 def input_password(prompt="Enter password: "):
     import sys, os
-    if os.name == 'nt':  # Windows
+    if os.name == 'nt':
         import msvcrt
         print(prompt, end='', flush=True)
         password = ''
@@ -33,11 +34,11 @@ def input_password(prompt="Enter password: "):
             if ch in {b'\r', b'\n'}:
                 print('')
                 break
-            elif ch == b'\x08':  # Backspace
+            elif ch == b'\x08':
                 if len(password) > 0:
                     password = password[:-1]
                     print('\b \b', end='', flush=True)
-            elif ch == b'\x03':  # Ctrl+C
+            elif ch == b'\x03':
                 raise KeyboardInterrupt
             else:
                 password += ch.decode('utf-8', errors='ignore')
@@ -56,7 +57,7 @@ def input_password(prompt="Enter password: "):
                 if ch in ('\r', '\n'):
                     print('')
                     break
-                elif ch == '\x7f':  # Backspace
+                elif ch == '\x7f':
                     if len(password) > 0:
                         password = password[:-1]
                         print('\b \b', end='', flush=True)
@@ -67,34 +68,70 @@ def input_password(prompt="Enter password: "):
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
         return password
 
+# --------------------- CARD SYSTEM FUNCTIONS ---------------------
+def get_card_balance(card_number):
+    """Retrieve balance for a given card."""
+    if not os.path.exists(CARD_FILE):
+        return 0.0
+    with open(CARD_FILE, "r", encoding="utf-8") as file:
+        for line in file:
+            if not line.strip():
+                continue
+            parts = line.strip().split(",")
+            if len(parts) < 2:
+                continue
+            card, balance = parts[0], parts[1]
+            if card == card_number:
+                try:
+                    return float(balance)
+                except ValueError:
+                    return 0.0
+    return 0.0
+
+def update_card_balance(card_number, new_balance):
+    """Update or add a card's new balance."""
+    lines = []
+    updated = False
+
+    if os.path.exists(CARD_FILE):
+        with open(CARD_FILE, "r", encoding="utf-8") as file:
+            lines = file.readlines()
+
+    with open(CARD_FILE, "w", encoding="utf-8") as file:
+        for line in lines:
+            if not line.strip():
+                continue
+            parts = line.strip().split(",")
+            if len(parts) < 2:
+                continue
+            card = parts[0]
+            balance = parts[1]
+            if card == card_number:
+                file.write(f"{card},{new_balance:.2f}\n")
+                updated = True
+            else:
+                file.write(f"{card},{balance}\n")
+        if not updated:
+            file.write(f"{card_number},{new_balance:.2f}\n")
+# ----------------------------------------------------------------
+
 def login():
     while True:
         os.system('cls' if os.name == 'nt' else 'clear')
-        print("-" * 50)
-        print(" Login ".center(50, "-"))
-        print("-" * 50)
+        print("=" * total_width)
+        print(" LOGIN ".center(total_width, "-"))
+        print("=" * total_width)
 
         if not os.path.exists(USER_FILE):
             print("Error: 'users.txt' not found!")
-            print("Please create it in the same folder as this script.")
-            print("Format example:")
             example_hash = hash_password("Admin@1234")
-            print(f"admin,{example_hash}")
+            print(f"Example user line:\nadmin,{example_hash}")
             input("\nPress Enter to exit...")
             exit()
 
+        print("\n")
         username = input("Enter username: ").strip()
         password = input_password("Enter password: ").strip()
-
-        if not validate_password(password):
-            print("\nInvalid password.")
-            # print("Password must have:")
-            # print(" - At least 8 characters")
-            # print(" - At least one uppercase letter")
-            # print(" - At least one special character (!@#$%^&*)")
-            input("\nPress Enter to try again...")
-            continue
-
         hashed_input = hash_password(password)
 
         with open(USER_FILE, "r", encoding="utf-8") as file:
@@ -109,25 +146,25 @@ def login():
         print("\nInvalid username or password. Please try again.\n")
         input("Press Enter to retry...")
 
-
 def menu():
-    print("-" * 50)
-    print(" Welcome to HP Petrol Pump ".center(50, "-"))
-    print("-" * 50)
-    print("Available Fuel Types:")
-    print("A. Premium Gasoline")
-    print("B. Unleaded Gasoline")
-    print("C. Diesel")
-    print("D. LPG")
-    print("V. View Transaction History")
-    print("Q. Exit")
-    print("-" * 50)
-
+    print("\n")
+    print("=" * total_width)
+    print(" WELCOME TO HP PETROL PUMP ".center(total_width, "-"))
+    print("=" * total_width)
+    print("\nAvailable Options:")
+    print(" A. Premium Gasoline")
+    print(" B. Unleaded Gasoline")
+    print(" C. Diesel")
+    print(" D. LPG")
+    print(" V. View Transaction History")
+    print(" S. View Sales Summary")
+    print(" Q. Exit")
+    print("\n")
+    print("-" * total_width)
 
 def record_transaction(bill_info):
     with open(FUEL_FILE, "a", encoding="utf-8") as file:
         file.write(bill_info + "\n")
-
 
 def view_transactions():
     if not os.path.exists(FUEL_FILE):
@@ -139,7 +176,7 @@ def view_transactions():
         for line in file:
             parts = [p.strip() for p in line.strip().split("|")]
             if len(parts) < 6:
-                continue  # skip malformed lines
+                continue
             bill_no, date_time, fuel_type, quantity, amount, payment_info = parts
             transactions.append({
                 "Bill No": bill_no,
@@ -150,35 +187,86 @@ def view_transactions():
                 "Payment Info": payment_info
             })
 
-    if not transactions:
-        print("No valid transactions found.")
-        return
-
     headers = ["Bill No", "Date & Time", "Fuel Type", "Quantity", "Amount", "Payment Info"]
     col_widths = {h: len(h) for h in headers}
-
     for txn in transactions:
         for h in headers:
             col_widths[h] = max(col_widths[h], len(str(txn[h])))
 
-    total_width = sum(col_widths.values()) + len(headers) * 3 + 1
+    total_line_width = sum(col_widths.values()) + len(headers) * 3 + 1
+    total_line_width = max(total_line_width, total_width)
 
-    print("\n" + "-" * total_width)
-    print("Transaction History".center(total_width))
-    print("-" * total_width)
+    print("\n")
+    print("\n" + "-" * total_line_width)
+    print("TRANSACTION HISTORY".center(total_line_width))
+    print("-" * total_line_width)
 
     header_line = "| " + " | ".join(f"{h:<{col_widths[h]}}" for h in headers) + " |"
     print(header_line)
-    print("-" * total_width)
+    print("-" * total_line_width)
 
     for txn in transactions:
         row = "| " + " | ".join(f"{str(txn[h]):<{col_widths[h]}}" for h in headers) + " |"
         print(row)
 
-    print("-" * total_width)
-    print("End of Transaction HHistory".center(total_width))
-    print("-" * total_width)
+    print("-" * total_line_width)
+    print("End of Transaction History".center(total_line_width))
+    print("-" * total_line_width)
 
+def view_sales():
+    if not os.path.exists(FUEL_FILE):
+        print("No sales data found.")
+        return
+
+    sales = {}
+    with open(FUEL_FILE, "r", encoding="utf-8") as file:
+        for line in file:
+            parts = [p.strip() for p in line.strip().split("|")]
+            if len(parts) < 6:
+                continue
+            _, _, fuel_type, quantity, amount, _ = parts
+            try:
+                qty_val = float(quantity.replace("L", "").strip())
+                amt_val = float(amount.replace("₱", "").strip())
+            except ValueError:
+                continue
+            if fuel_type not in sales:
+                sales[fuel_type] = {"Liters": 0, "Amount": 0}
+            sales[fuel_type]["Liters"] += qty_val
+            sales[fuel_type]["Amount"] += amt_val
+
+    headers = ["Fuel Type", "Total Liters", "Total Sales (₱)"]
+    col_widths = {h: len(h) for h in headers}
+
+    for fuel_type, data in sales.items():
+        col_widths["Fuel Type"] = max(col_widths["Fuel Type"], len(fuel_type))
+        col_widths["Total Liters"] = max(col_widths["Total Liters"], len(f"{data['Liters']:.2f}"))
+        col_widths["Total Sales (₱)"] = max(col_widths["Total Sales (₱)"], len(f"{data['Amount']:.2f}"))
+
+    total_line_width = sum(col_widths.values()) + len(headers) * 3 + 1
+    total_line_width = max(total_line_width, total_width)
+
+    print("\n" + "-" * total_line_width)
+    print("SALES SUMMARY".center(total_line_width))
+    print("-" * total_line_width)
+
+    header_line = "| " + " | ".join(f"{h:<{col_widths[h]}}" for h in headers) + " |"
+    print(header_line)
+    print("-" * total_line_width)
+
+    grand_total = 0
+    for fuel_type, data in sales.items():
+        row = (
+            f"| {fuel_type:<{col_widths['Fuel Type']}} | "
+            f"{data['Liters']:<{col_widths['Total Liters']}.2f} | "
+            f"{data['Amount']:<{col_widths['Total Sales (₱)']}.2f} |"
+        )
+        print(row)
+        grand_total += data["Amount"]
+
+    print("-" * total_line_width)
+    print(f"{'Grand Total Sales:':>{total_line_width - 20}} ₱{grand_total:,.2f}")
+    print("-" * total_line_width)
 
 def handle_purchase(fuel_type):
     rate = fr.get_rate(fuel_type)
@@ -186,165 +274,151 @@ def handle_purchase(fuel_type):
         print("Error: Could not retrieve fuel rate.")
         return
 
-    print("\n" + "•" * 50)
-    print(f"Current Fuel Rate for {fuel_type}: ₱{rate:.2f}/Liter".center(50))
-    print("•" * 50)
+    print("\n")
+    print("\n" + "-" * total_width)
+    print(f"Current Fuel Rate for {fuel_type}: ₱{rate:.2f}/Liter".center(total_width))
+    print("-" * total_width)
     print("Mode Selection:")
     print("   1. Fill by Amount")
     print("   2. Fill by Quantity")
-    print("-" * 50)
+    print("-" * total_width)
 
     mode_choice = input("   Enter mode (1 or 2): ").strip()
 
     if mode_choice == '1':
-        try:
-            amount = float(input(f"   Enter amount to fill (₱): "))
-        except ValueError:
-            print("   Invalid input. Please enter a number.")
+        amount = float(input("   Enter amount to fill (₱): "))
+        if amount <= 0 or amount < rate:
+            print("   Invalid or too low amount.")
             return
-
-        if amount <= 0:
-            print("   Amount must be positive.")
-            return
-        if amount < rate:
-            print(f"   Insufficient amount! Minimum purchase is ₱{rate:.2f} (1 Liter).")
-            return
-
         quantity = amount / rate
-
     elif mode_choice == '2':
-        try:
-            quantity = float(input(f"   Enter quantity to fill (Liters): "))
-        except ValueError:
-            print("   Invalid input. Please enter a number.")
-            return
-
+        quantity = float(input("   Enter quantity to fill (Liters): "))
         if quantity <= 0:
-            print("   Quantity must be positive.")
+            print("   Invalid quantity.")
             return
-        if quantity < 1.0:
-            print("   Insufficient quantity! Minimum purchase is 1.0 Liter.")
-            return
-
         amount = round(quantity * rate, 2)
-
     else:
-        print("   Invalid purchase mode selected.")
+        print("   Invalid mode.")
         return
 
-    print("\n" + "=" * 50)
-    print(f"TOTAL BILL: ₱{amount:.2f}")
-    print("=" * 50)
-    print("Payment Method:")
-    print("   A. Cash")
-    print("   B. Card (Exact Payment)")
+    print("\n")
+    print("\n" + "-" * total_width)
+    print(f"TOTAL BILL: ₱{amount:.2f}".center(total_width))
+    print("-" * total_width)
+    print("Payment Method:\n   A. Cash\n   B. Card")
+    pay = input("   Enter payment method (A/B): ").upper().strip()
+    change = 0
+    paid = amount
+    method = "Card"
+    remaining_balance = None
 
-    payment_choice = input("   Enter payment method (A or B): ").upper().strip()
+    if pay == "A":
+        method = "Cash"
+        paid = float(input("   Enter cash amount: ₱"))
+        if paid < amount:
+            print("   Payment failed. Not enough cash.")
+            return
+        change = round(paid - amount, 2)
+    elif pay == "B":
+        method = "Card"
+        card_number = input("   Enter your card number: ").strip()
 
-    amount_paid = amount
-    change = 0.0
-    payment_method = "Card"
-
-    if payment_choice == 'A':
-        payment_method = "Cash"
-        try:
-            cash_paid = float(input(f"   Enter cash amount paid (₱): "))
-        except ValueError:
-            print("   Invalid input. Please enter a number.")
+        # --- Card Deduction Logic (copied exactly) ---
+        balance = get_card_balance(card_number)
+        if balance <= 0:
+            print("   Card not found or has no balance. Please top up.")
             return
 
-        if cash_paid < amount:
-            print("   Payment failed! Cash paid is less than the total bill.")
+        if balance < amount:
+            print(f"   Insufficient balance! Card has only ₱{balance:.2f}.")
             return
 
-        amount_paid = cash_paid
-        change = round(cash_paid - amount, 2)
+        new_balance = balance - amount
+        update_card_balance(card_number, new_balance)
+        remaining_balance = new_balance
 
-    elif payment_choice == 'B':
-        payment_method = "Card"
-        print("   Card payment processed successfully.")
+        print("\n" + "-" * total_width)
+        print(f"   Card Number: {card_number}")
+        print(f"   Amount Deducted: ₱{amount:.2f}")
+        print(f"   Remaining Balance: ₱{new_balance:.2f}")
+        print("-" * total_width)
+        # ------------------------------------------------
 
     else:
-        print("   Invalid payment method selected.")
+        print("Invalid payment option.")
         return
 
-    generate_bill(fuel_type, amount, quantity, rate, payment_method, amount_paid, change)
+    generate_bill(fuel_type, amount, quantity, rate, method, paid, change, remaining_balance)
 
-
-def generate_bill(fuel_type, amount, quantity, rate, payment_method, amount_paid, change):
+def generate_bill(fuel_type, amount, quantity, rate, method, paid, change, remaining_balance=None):
     date_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     bill_no = random.randint(100000, 999999)
-
-    save_bill(bill_no, date_time, fuel_type, quantity, "Liters", amount, rate, payment_method, amount_paid, change)
-
-    bill_info = f"{bill_no} | {date_time} | {fuel_type} | {quantity:.3f} L | ₱{amount:.2f} | {payment_method}"
+    save_bill(bill_no, date_time, fuel_type, quantity, "Liters", amount, rate, method, paid, change, remaining_balance)
+    # transaction history will keep same format (method only) to match original behavior
+    bill_info = f"{bill_no} | {date_time} | {fuel_type} | {quantity:.3f} L | ₱{amount:.2f} | {method}"
     record_transaction(bill_info)
 
-    print("\n" + "*" * 50)
-    print("TRANSACTION COMPLETE".center(50))
-    print("*" * 50)
-    print(f" Bill No: {bill_no}")
-    print(f" Date & Time: {date_time}")
-    print("-" * 50)
-    print(f" Fuel Type: {fuel_type}")
-    print(f" Rate/Liter: ₱{rate:.2f}")
-    print(f" Quantity:   {quantity:.3f} Liters")
-    print("-" * 50)
-    print(f" **TOTAL DUE:** ₱{amount:.2f}")
-    print(f" Payment: {payment_method}")
-
-    if payment_method == "Cash":
-        print(f" Cash Received: ₱{amount_paid:.2f}")
+    print("\n")
+    print("\n" + "*" * total_width)
+    print("TRANSACTION COMPLETE".center(total_width))
+    print("*" * total_width)
+    print(f"Bill No: {bill_no}")
+    print(f"Date & Time: {date_time}")
+    print(f"Fuel Type: {fuel_type}")
+    print(f"Quantity: {quantity:.3f} Liters @ ₱{rate:.2f}/L")
+    print(f"Total Due: ₱{amount:.2f}")
+    print(f"Payment: {method}")
+    if method == "Cash":
+        print(f"Cash Paid: ₱{paid:.2f}")
         if change > 0:
-            print(f" **CHANGE DUE:** ₱{change:.2f}")
+            print(f"Change: ₱{change:.2f}")
+    elif method == "Card" and remaining_balance is not None:
+        print(f"Amount Deducted: ₱{amount:.2f}")
+        print(f"Remaining Card Balance: ₱{remaining_balance:.2f}")
+    print("-" * total_width)
+    print("Thank you for your purchase!".center(total_width))
+    print("*" * total_width)
 
-    print("-" * 50)
-    print(" Thank you for your purchase! Visit again. ".center(50))
-    print("*" * 50)
-
-
-def save_bill(bill_no, date_time, fuel_type, quantity, unit, amount, rate, payment_method, amount_paid, change):
+def save_bill(bill_no, date_time, fuel_type, quantity, unit, amount, rate, method, paid, change, remaining_balance=None):
     filename = os.path.join(BASE_DIR, f"bill_{bill_no}.txt")
-    with open(filename, "w", encoding="utf-8") as file:
-        file.write("-" * 50 + "\n")
-        file.write("HP Petrol Pump\n")
-        file.write("-" * 50 + "\n")
-        file.write(f"Bill No: {bill_no}\n")
-        file.write(f"Date & Time: {date_time}\n")
-        file.write(f"Fuel Type: {fuel_type}\n")
-        file.write(f"Quantity: {quantity:.3f} Liters\n")
-        file.write(f"Rate per Liter: ₱{rate:.2f}\n")
-        file.write("-" * 50 + "\n")
-        file.write(f"Total Amount Due: ₱{amount:.2f}\n")
-        file.write(f"Payment Method: {payment_method}\n")
-
-        if payment_method == "Cash":
-            file.write(f"Cash Paid: ₱{amount_paid:.2f}\n")
-            file.write(f"Change Due: ₱{change:.2f}\n")
-
-        file.write("-" * 50 + "\n")
-        file.write("Thank you for your purchase! Visit again.\n")
-        file.write("-" * 50 + "\n")
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write("-" * total_width + "\n")
+        f.write("HP Petrol Pump\n")
+        f.write("-" * total_width + "\n")
+        f.write(f"Bill No: {bill_no}\n")
+        f.write(f"Date & Time: {date_time}\n")
+        f.write(f"Fuel Type: {fuel_type}\n")
+        f.write(f"Quantity: {quantity:.3f} Liters\n")
+        f.write(f"Rate: ₱{rate:.2f}/L\n")
+        f.write("-" * total_width + "\n")
+        f.write(f"Total: ₱{amount:.2f}\n")
+        f.write(f"Payment: {method}\n")
+        if method == "Cash":
+            f.write(f"Cash Paid: ₱{paid:.2f}\nChange: ₱{change:.2f}\n")
+        elif method == "Card" and remaining_balance is not None:
+            f.write(f"Amount Deducted: ₱{amount:.2f}\n")
+            f.write(f"Remaining Card Balance: ₱{remaining_balance:.2f}\n")
+        f.write("-" * total_width + "\nThank you!\n")
 
 def main():
     login()
-
     while True:
         try:
             menu()
             choice = input("Enter your choice: ").upper().strip()
 
             if choice == 'A':
-                fuel_type = "Premium Gasoline"
+                handle_purchase("Premium Gasoline")
             elif choice == 'B':
-                fuel_type = "Unleaded Gasoline"
+                handle_purchase("Unleaded Gasoline")
             elif choice == 'C':
-                fuel_type = "Diesel"
+                handle_purchase("Diesel")
             elif choice == 'D':
-                fuel_type = "LPG"
+                handle_purchase("LPG")
             elif choice == 'V':
                 view_transactions()
-                continue
+            elif choice == 'S':
+                view_sales()
             elif choice == 'Q':
                 os.system('cls' if os.name == 'nt' else 'clear')
                 print("Thank you for visiting HP Petrol Pump. Goodbye!\n")
@@ -353,15 +427,12 @@ def main():
                 print("Invalid option. Please try again.")
                 continue
 
-            handle_purchase(fuel_type)
-
         except ValueError:
             print("Please enter a valid numeric input.")
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
         finally:
             print("\nReturning to main menu...\n")
-
 
 if __name__ == "__main__":
     main()

@@ -32,3 +32,9 @@
 316741 | 2025-11-03 19:49:32 | Premium Gasoline | 1.333 L | ₱100.00 | Cash
 842811 | 2025-11-03 19:51:13 | Premium Gasoline | 4.000 L | ₱300.00 | Card
 377709 | 2025-11-03 20:58:19 | Premium Gasoline | 1.333 L | ₱100.00 | Cash
+470032 | 2025-11-03 23:43:57 | Premium Gasoline | 4.000 L | ₱300.00 | Cash
+275470 | 2025-11-03 23:54:57 | Premium Gasoline | 2.000 L | ₱150.00 | Cash
+747083 | 2025-11-03 23:55:43 | Unleaded Gasoline | 8.000 L | ₱580.00 | Card
+846559 | 2025-11-03 23:55:59 | Premium Gasoline | 10.000 L | ₱750.00 | Cash
+610237 | 2025-11-04 02:55:07 | Premium Gasoline | 2.000 L | ₱150.00 | Card
+765329 | 2025-11-04 02:56:13 | Unleaded Gasoline | 2.759 L | ₱200.00 | Card
