@@ -1,0 +1,16 @@
+--------------------------------------------------
+HP Petrol Pump
+--------------------------------------------------
+Bill No: 470032
+Date & Time: 2025-11-03 23:43:57
+Fuel Type: Premium Gasoline
+Quantity: 4.000 Liters
+Rate per Liter: ₱75.00
+--------------------------------------------------
+Total Amount Due: ₱300.00
+Payment Method: Cash
+Cash Paid: ₱500.00
+Change Due: ₱200.00
+--------------------------------------------------
+Thank you for your purchase! Visit again.
+--------------------------------------------------
